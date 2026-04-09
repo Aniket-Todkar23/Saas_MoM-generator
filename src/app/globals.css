@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@source "../../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -122,9 +123,13 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    /* Semi-transparent body so the fixed global gradient blobs bleed through */
+    background-color: oklch(from var(--background) l c h / 0.82);
   }
   html {
     @apply font-sans;
+    /* Fallback solid background on html root */
+    background-color: var(--background);
   }
 }
