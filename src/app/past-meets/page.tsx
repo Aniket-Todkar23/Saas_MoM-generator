@@ -26,7 +26,7 @@ export default async function PastMeetsPage() {
   })
 
   // Convert Date objects to ISO strings for client component
-  const serializedMeetings = meetings.map(m => ({
+  const serializedMeetings = meetings.map((m: (typeof meetings)[number]) => ({
     id: m.id,
     title: m.title,
     content: m.content,
