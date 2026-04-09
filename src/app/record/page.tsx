@@ -34,6 +34,8 @@ declare global {
   }
 }
 
+import { signIn } from "next-auth/react"
+
 export default function RecordPage() {
   const router = useRouter()
   const {
@@ -197,21 +199,13 @@ export default function RecordPage() {
     }
   }, [setAbortController, setRecordingState, setMom, setError])
 
-  const handleLogin = useCallback(async () => {
+  const handleLogin = useCallback(() => {
     if (isLoggingIn) return
 
-    try {
-      setIsLoggingIn(true)
-      const res = await fetch("/api/auth/login", { method: "POST" })
-      if (!res.ok) throw new Error("Failed to login")
-      await loadCredits()
-      setError(null)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to login")
-    } finally {
-      setIsLoggingIn(false)
-    }
-  }, [isLoggingIn, loadCredits, setError])
+    setIsLoggingIn(true)
+    setError(null)
+    signIn("google", { callbackUrl: "/record" })
+  }, [isLoggingIn, setError])
 
   // ── Controls ───────────────────────────────────────────────────────────────
   const handleStart = useCallback(() => {
@@ -310,7 +304,7 @@ export default function RecordPage() {
             disabled={isLoggingIn}
             className="px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoggingIn ? "Logging In..." : "LogIn"}
+            {isLoggingIn ? "Redirecting..." : "Log In with Google"}
           </button>
         )}
       </motion.div>

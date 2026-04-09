@@ -1,9 +1,16 @@
-import HoverBorderDemo from '@/components/ui/hover-border-gradient'
+import SuggestiveSearch from '@/components/ui/suggestive-search'
 
 export default function DemoPage() {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background px-6">
-      <HoverBorderDemo />
+    <div className="flex justify-center p-10">
+      <SuggestiveSearch
+        suggestions={[
+          'Search your favourite movie',
+          'Search user from connection',
+          'Find trending topics',
+        ]}
+        effect="typewriter"
+      />
     </div>
   )
 }

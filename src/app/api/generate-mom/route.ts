@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
 
-const AUTH_COOKIE_NAME = 'mom_auth'
 const GUEST_USAGE_COOKIE_NAME = 'mom_guest_usage'
 const GUEST_FREE_LIMIT = 5
 
@@ -86,6 +87,7 @@ const PREMIUM_MODEL_FALLBACKS = [
 
 type CreditsState = {
   isLoggedIn: boolean
+  userId?: string
   usage: number
   creditsRemaining: number | null
 }
@@ -98,12 +100,14 @@ function parseNonNegativeInt(value: string | undefined): number {
   return parsed
 }
 
-function readCreditsState(req: NextRequest): CreditsState {
-  const isLoggedIn = req.cookies.get(AUTH_COOKIE_NAME)?.value === '1'
+async function readCreditsState(req: NextRequest): Promise<CreditsState> {
+  const session = await auth()
+  const isLoggedIn = Boolean(session?.user)
 
   if (isLoggedIn) {
     return {
       isLoggedIn: true,
+      userId: session?.user?.id,
       usage: 0,
       creditsRemaining: null,
     }
@@ -134,8 +138,41 @@ function extractResponseText(data: OpenRouterResponse): string {
   return ''
 }
 
+async function generateTitle(apiKey: string, text: string, req: NextRequest): Promise<string> {
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
+        'X-Title': 'AI Meeting Minutes',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [{
+          role: 'user',
+          content: `Write a short, engaging 3-5 word title for the following Minutes of Meeting. Output ONLY the title. Do not use quotes.\n\n${text.substring(0, 1500)}`
+        }],
+        temperature: 0.3,
+        max_tokens: 30,
+      }),
+      signal: req.signal,
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      const title = data?.choices?.[0]?.message?.content?.trim()
+      if (title) return title
+    }
+  } catch (err) {
+    console.warn('[generate-mom] Title generation failed', err)
+  }
+  return "Meeting Minutes"
+}
+
 export async function GET(req: NextRequest) {
-  const creditsState = readCreditsState(req)
+  const creditsState = await readCreditsState(req)
 
   return NextResponse.json({
     isLoggedIn: creditsState.isLoggedIn,
@@ -145,7 +182,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const creditsState = readCreditsState(req)
+  const creditsState = await readCreditsState(req)
 
   if (!creditsState.isLoggedIn && creditsState.creditsRemaining === 0) {
     return NextResponse.json(
@@ -240,10 +277,30 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      let generatedTitle = "Meeting Minutes"
+      let meetingId = null
+
       if (creditsState.isLoggedIn) {
+        generatedTitle = await generateTitle(apiKey, text, req)
+        
+        try {
+          const newMeeting = await prisma.meeting.create({
+            data: {
+              title: generatedTitle,
+              content: text,
+              userId: creditsState.userId!,
+            }
+          })
+          meetingId = newMeeting.id
+        } catch (dbErr) {
+          console.error('[generate-mom] Failed to save meeting to database:', dbErr)
+        }
+        
         return NextResponse.json({
           mom: text,
           model,
+          title: generatedTitle,
+          meetingId,
           isLoggedIn: true,
           creditsRemaining: null,
           freeLimit: GUEST_FREE_LIMIT,

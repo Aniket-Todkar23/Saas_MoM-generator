@@ -6,6 +6,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/ui/mini-navbar";
 import { SmoothScroll } from "@/components/ui/smooth-scroll";
 import { GlobalGradientBackground } from "@/components/ui/global-gradient-bg";
+import { SessionProvider } from "next-auth/react";
+import { auth } from "@/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,11 +24,13 @@ export const metadata: Metadata = {
   description: "Record and summarize your meetings effortlessly.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html
       lang="en"
@@ -40,11 +44,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <GlobalGradientBackground />
-          <SmoothScroll>
-            <Navbar />
-            {children}
-          </SmoothScroll>
+          <SessionProvider session={session}>
+            <GlobalGradientBackground />
+            <SmoothScroll>
+              <Navbar />
+              {children}
+            </SmoothScroll>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>
