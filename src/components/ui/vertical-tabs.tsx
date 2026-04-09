@@ -11,7 +11,7 @@ const STEPS = [
     id: "01",
     title: "Record",
     description: "Hit the record button right from your browser window. We leverage the Web Speech API to ensure your voice is captured securely and fluidly.",
-    image: "https://images.unsplash.com/photo-1590602847861-f357a9162c6a?q=80&w=600&auto=format&fit=crop",
+    image: "/record-image.jpg",
     icon: Mic,
   },
   {
@@ -23,8 +23,8 @@ const STEPS = [
   },
   {
     id: "03",
-    title: "Gemini Magic",
-    description: "Once the meeting concludes, we hand off the raw text to Google Gemini API to structure, summarize, and identify key facts.",
+    title: "AI Magic",
+    description: "Once the meeting concludes, we hand off the raw text to advanced AI models to structure, summarize, and identify key facts.",
     image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop",
     icon: Sparkles,
   },

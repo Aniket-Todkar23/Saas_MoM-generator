@@ -41,7 +41,7 @@ export default function AboutPage() {
             },
             {
               title: "AI-First",
-              description: "Powered by Gemini, our systems extract actionable intelligence—action items, decisions, and context—flawlessly.",
+              description: "Powered by AI, our systems extract actionable intelligence—action items, decisions, and context—flawlessly.",
               icon: Bot,
               gradient: "from-rose-500/10 to-pink-500/10"
             }

@@ -36,7 +36,7 @@ const pricingTiers = [
     description: "Perfect for testing out the fundamental meeting minutes workflow.",
     features: [
       { text: "Unlimited raw transcriptions", included: true },
-      { text: "Core Gemini API processing", included: true, hasInfo: true },
+      { text: "Core AI processing", included: true, hasInfo: true },
       { text: "Copy to Clipboard export", included: true },
       { text: "Speaker Diarization", included: false },
       { text: "Advanced PDF Export", included: false }
@@ -52,7 +52,7 @@ const pricingTiers = [
     badge: { text: "COMING SOON" },
     features: [
       { text: "Everything in Free", included: true },
-      { text: "Priority Gemini 1.5 Pro access", included: true, hasInfo: true },
+      { text: "Priority premium AI access", included: true, hasInfo: true },
       { text: "Speaker Diarization (Who said what)", included: true },
       { text: "Advanced PDF Export", included: true },
       { text: "Notion & Slack Integrations", included: true }

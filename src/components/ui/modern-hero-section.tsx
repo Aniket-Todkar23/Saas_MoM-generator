@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { Mic } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 function ElegantShape({
   className,
@@ -177,12 +178,12 @@ export default function HeroGeometric({
           </motion.div>
 
           <motion.div custom={3} variants={fadeUpVariants} initial="hidden" animate="visible" className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
-            <button className="px-8 py-3.5 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 transition-all shadow-md w-full sm:w-auto">
+            <Link href="/record" className="px-8 py-3.5 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 transition-all shadow-md w-full sm:w-auto text-center">
               Start Your First Meeting
-            </button>
-            <button className="px-8 py-3.5 bg-secondary text-secondary-foreground rounded-full font-semibold hover:bg-secondary/80 transition-all shadow-md w-full sm:w-auto">
+            </Link>
+            <Link href="/how-it-works" className="px-8 py-3.5 bg-secondary text-secondary-foreground rounded-full font-semibold hover:bg-secondary/80 transition-all shadow-md w-full sm:w-auto text-center">
               See How It Works
-            </button>
+            </Link>
           </motion.div>
         </div>
       </div>
