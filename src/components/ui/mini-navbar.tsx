@@ -2,10 +2,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Loader2 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 
 import { signIn, signOut, useSession } from 'next-auth/react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const sectionToPath: Record<string, string> = {
   home: '/',
@@ -89,6 +98,11 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isManualLoginOpen, setIsManualLoginOpen] = useState(false);
+  const [manualEmail, setManualEmail] = useState('');
+  const [manualPassword, setManualPassword] = useState('');
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [isManualLoginLoading, setIsManualLoginLoading] = useState(false);
   const [headerShapeClass, setHeaderShapeClass] = useState('rounded-full');
   const shapeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
@@ -96,15 +110,58 @@ export function Navbar() {
   
   const { status } = useSession();
   const isLoggedIn = status === "authenticated";
-  const isAuthBusy = isLoggingIn || isLoggingOut;
+  const isAuthBusy = isLoggingIn || isLoggingOut || isManualLoginLoading;
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
-  const handleLogin = () => {
+  const handleGoogleLogin = () => {
     if (isAuthBusy) return;
 
     setIsLoggingIn(true);
     signIn('google', { callbackUrl: '/record' });
+  };
+
+  const handleOpenManualLogin = () => {
+    if (isAuthBusy) return;
+    setManualError(null);
+    setIsManualLoginOpen(true);
+  };
+
+  const handleManualLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isAuthBusy) return;
+
+    const email = manualEmail.trim().toLowerCase();
+    const password = manualPassword;
+
+    if (!email || !password) {
+      setManualError('Please enter both email and password.');
+      return;
+    }
+
+    setIsManualLoginLoading(true);
+    setManualError(null);
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: '/record',
+      });
+
+      if (result?.error) {
+        setManualError('Invalid email or password.');
+        return;
+      }
+
+      setIsManualLoginOpen(false);
+      setManualPassword('');
+      router.push('/record');
+      router.refresh();
+    } finally {
+      setIsManualLoginLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -187,11 +244,11 @@ export function Navbar() {
 
   const loginButtonElement = (
     <button
-      onClick={handleLogin}
+      onClick={handleOpenManualLogin}
       disabled={isAuthBusy}
       className="cursor-pointer px-4 py-2 sm:px-3 text-xs sm:text-sm border border-border bg-background/50 text-muted-foreground rounded-full hover:border-foreground/50 hover:text-foreground transition-colors duration-200 w-full sm:w-auto sm:whitespace-nowrap sm:shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {isLoggingIn ? 'Redirecting...' : 'Log In'}
+      {isManualLoginLoading ? 'Logging in...' : 'Log In'}
     </button>
   );
 
@@ -199,7 +256,7 @@ export function Navbar() {
     <div className="relative group w-full sm:w-auto sm:shrink-0">
       <div className="absolute inset-0 -m-2 rounded-full hidden sm:block bg-gradient-to-r from-indigo-500 to-purple-500 opacity-20 filter blur-lg pointer-events-none transition-all duration-300 ease-out group-hover:opacity-40 group-hover:blur-xl group-hover:-m-3" />
       <button
-        onClick={handleLogin}
+        onClick={handleGoogleLogin}
         disabled={isAuthBusy}
         className="relative z-10 cursor-pointer px-4 py-2 sm:px-3 text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full hover:opacity-90 transition-all duration-200 w-full sm:w-auto sm:whitespace-nowrap sm:shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
       >
@@ -219,7 +276,70 @@ export function Navbar() {
   );
 
   return (
-    <header className={`fixed top-6 left-1/2 -translate-x-1/2 z-50
+    <>
+      <Dialog open={isManualLoginOpen} onOpenChange={setIsManualLoginOpen}>
+        <DialogContent className="max-w-md border-border/70 bg-background/95 backdrop-blur-md">
+          <DialogHeader>
+            <DialogTitle>Log In</DialogTitle>
+            <DialogDescription>
+              Use your email and password to access your meetings.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form className="space-y-4" onSubmit={handleManualLoginSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="manual-login-email">Email</Label>
+              <Input
+                id="manual-login-email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={manualEmail}
+                onChange={(event) => setManualEmail(event.target.value)}
+                disabled={isManualLoginLoading}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="manual-login-password">Password</Label>
+              <Input
+                id="manual-login-password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={manualPassword}
+                onChange={(event) => setManualPassword(event.target.value)}
+                disabled={isManualLoginLoading}
+                required
+              />
+            </div>
+
+            {manualError && (
+              <p className="text-sm text-red-500" role="alert">
+                {manualError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isManualLoginLoading}
+              className="w-full h-10 inline-flex items-center justify-center rounded-md bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              {isManualLoginLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <header className={`fixed top-6 left-1/2 -translate-x-1/2 z-50
                        flex flex-col items-center
                        px-4 sm:px-6 py-2 sm:py-2.5 backdrop-blur-md
                        ${headerShapeClass}
@@ -310,7 +430,8 @@ export function Navbar() {
           </div>
         </nav>
       </div>
-    </header>
+      </header>
+    </>
   );
 }
      
