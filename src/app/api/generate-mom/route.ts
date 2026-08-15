@@ -80,9 +80,9 @@ type OpenRouterResponse = {
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const PREMIUM_MODEL_FALLBACKS = [
-  'openai/gpt-5.4-mini',
-  'anthropic/claude-sonnet-4.6',
-  'google/gemini-2.5-flash',
+  'google/gemini-3.7-flash',
+  'anthropic/claude-sonnet-5',
+  'openai/gpt-5.6',
 ]
 
 type CreditsState = {
@@ -146,10 +146,10 @@ async function generateTitle(apiKey: string, text: string, req: NextRequest): Pr
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-        'X-Title': 'AI Meeting Minutes',
+        'X-Title': 'MinuteFlow',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-3.7-flash',
         messages: [{
           role: 'user',
           content: `Write a short, engaging 3-5 word title for the following Minutes of Meeting. Output ONLY the title. Do not use quotes.\n\n${text.substring(0, 1500)}`
@@ -225,7 +225,7 @@ export async function POST(req: NextRequest) {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-          'X-Title': 'AI Meeting Minutes',
+          'X-Title': 'MinuteFlow',
         },
         body: JSON.stringify({
           model,

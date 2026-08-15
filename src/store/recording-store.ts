@@ -7,7 +7,7 @@ interface RecordingStore {
   state: RecordingState
   transcript: string
   elapsed: number
-  mom: string
+  minuteFlow: string
   error: string | null
 
   // Abort controller for Gemini call (not serializable — stored as ref outside)
@@ -19,7 +19,7 @@ interface RecordingStore {
   appendTranscript: (t: string) => void
   setElapsed: (e: number) => void
   incrementElapsed: () => void
-  setMom: (m: string) => void
+  setMinuteFlow: (m: string) => void
   setError: (e: string | null) => void
   setAbortController: (ac: AbortController | null) => void
   reset: () => void
@@ -29,7 +29,7 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
   state: 'idle',
   transcript: '',
   elapsed: 0,
-  mom: '',
+  minuteFlow: '',
   error: null,
   abortController: null,
 
@@ -38,7 +38,7 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
   appendTranscript: (t) => set((prev) => ({ transcript: prev.transcript + t })),
   setElapsed: (e) => set({ elapsed: e }),
   incrementElapsed: () => set((prev) => ({ elapsed: prev.elapsed + 1 })),
-  setMom: (m) => set({ mom: m }),
+  setMinuteFlow: (m) => set({ minuteFlow: m }),
   setError: (e) => set({ error: e }),
   setAbortController: (ac) => set({ abortController: ac }),
 
@@ -46,7 +46,7 @@ export const useRecordingStore = create<RecordingStore>((set) => ({
     state: 'idle',
     transcript: '',
     elapsed: 0,
-    mom: '',
+    minuteFlow: '',
     error: null,
     abortController: null,
   }),

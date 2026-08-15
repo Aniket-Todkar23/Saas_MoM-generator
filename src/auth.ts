@@ -31,7 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials: Partial<Record<"email" | "password", unknown>>) {
         const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : ""
         const password = typeof credentials?.password === "string" ? credentials.password : ""
 
@@ -69,7 +69,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
+    async session({ session, user }: { session: any; user: any }) {
       if (session.user) {
         (session.user as typeof session.user & { id: string }).id = user.id
       }

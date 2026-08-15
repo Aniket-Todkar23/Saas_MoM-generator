@@ -131,5 +131,7 @@
     @apply font-sans;
     /* Fallback solid background on html root */
     background-color: var(--background);
+    /* Native smooth scrolling — no JS required, works with wheel + scrollbar */
+    scroll-behavior: smooth;
   }
 }

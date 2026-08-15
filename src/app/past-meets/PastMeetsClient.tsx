@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useMemo, useEffect } from "react"
-import { Copy, Check, Printer } from "lucide-react"
+import { Copy, Check, Printer, FileAudio, ExternalLink, CheckSquare } from "lucide-react"
 import { Streamdown } from "streamdown"
 import {
   Accordion,
@@ -20,6 +20,8 @@ type Meeting = {
   title: string
   content: string
   createdAt: string
+  audioUrl?: string | null
+  _count?: { actionItems: number }
 }
 
 const PAGE_SIZE = 5
@@ -208,15 +210,35 @@ export default function PastMeetsClient({ initialMeetings }: { initialMeetings: 
                           <p className="text-base md:text-lg font-semibold text-foreground line-clamp-2">
                             {meet.title}
                           </p>
-                          <p className="text-xs md:text-sm text-muted-foreground mt-1" suppressHydrationWarning>
-                            {mounted ? format(new Date(meet.createdAt), 'MMM d, yyyy - h:mm a') : '...'}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            <p className="text-xs md:text-sm text-muted-foreground" suppressHydrationWarning>
+                              {mounted ? format(new Date(meet.createdAt), 'MMM d, yyyy - h:mm a') : '...'}
+                            </p>
+                            {meet.audioUrl && (
+                              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                <FileAudio className="w-2.5 h-2.5" />
+                                Audio
+                              </span>
+                            )}
+                            {(meet._count?.actionItems ?? 0) > 0 && (
+                              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                <CheckSquare className="w-2.5 h-2.5" />
+                                {meet._count?.actionItems} Action Item{meet._count!.actionItems !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </AccordionHeader>
 
                     <AccordionPanel className="border-t border-border/60 bg-transparent text-sm md:text-base leading-relaxed text-foreground [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_ol]:list-decimal [&_ol]:pl-6 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mb-1 [&_p]:mb-3 [&_strong]:font-semibold break-words">
                       <div className="flex justify-end gap-2 mb-4">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/meetings/${meet.id}`} onClick={e => e.stopPropagation()}>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            View Full MoM
+                          </Link>
+                        </Button>
                         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleCopy(meet.id, meet.content); }}>
                           {copiedId === meet.id ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
                           {copiedId === meet.id ? "Copied" : "Copy"}

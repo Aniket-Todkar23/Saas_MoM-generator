@@ -22,6 +22,8 @@ export default async function PastMeetsPage() {
       title: true,
       content: true,
       createdAt: true,
+      audioUrl: true,
+      _count: { select: { actionItems: true } },
     }
   })
 
@@ -30,7 +32,9 @@ export default async function PastMeetsPage() {
     id: m.id,
     title: m.title,
     content: m.content,
-    createdAt: m.createdAt.toISOString()
+    createdAt: m.createdAt.toISOString(),
+    audioUrl: m.audioUrl,
+    _count: m._count,
   }))
 
   return (

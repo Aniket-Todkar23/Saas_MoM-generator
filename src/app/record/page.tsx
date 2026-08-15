@@ -1,14 +1,15 @@
 "use client"
 
-import React, { useEffect, useRef, useCallback } from "react"
+import React, { useEffect, useRef, useCallback, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Mic, Pause, Square, Play, FileText, Loader2, ArrowLeft, XCircle, Copy, RotateCcw } from "lucide-react"
+import { Mic, Pause, Square, Play, FileText, Loader2, ArrowLeft, XCircle, Copy, RotateCcw, Upload } from "lucide-react"
 import { Streamdown } from "streamdown"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useRecordingStore } from "@/store/recording-store"
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient"
 import { AnimatedBlobs } from "@/components/ui/blobs"
+import AudioUploader from "@/components/AudioUploader"
 
 // ── Web Speech API types ──────────────────────────────────────────────────────
 interface SpeechRecognitionEvent extends Event {
@@ -38,10 +39,11 @@ import { signIn } from "next-auth/react"
 
 export default function RecordPage() {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<"mic" | "upload">("mic")
   const {
-    state, transcript, elapsed, mom, error,
+    state, transcript, elapsed, minuteFlow, error,
     setRecordingState, setTranscript, appendTranscript,
-    setElapsed, incrementElapsed, setMom, setError,
+    setElapsed, incrementElapsed, setMinuteFlow, setError,
     setAbortController, abortController, reset,
   } = useRecordingStore()
 
@@ -157,12 +159,12 @@ export default function RecordPage() {
     return r
   }, [appendTranscript])
 
-  // ── Premium MoM API call ───────────────────────────────────────────────────
-  const generateMom = useCallback(async (finalTranscript: string) => {
+  // ── Premium MinuteFlow API call ───────────────────────────────────────────────────
+  const generateMinuteFlow = useCallback(async (finalTranscript: string) => {
     const ac = new AbortController()
     setAbortController(ac)
     setRecordingState("processing")
-    setMom("")
+    setMinuteFlow("")
     setError(null)
 
     try {
@@ -185,7 +187,7 @@ export default function RecordPage() {
         throw new Error(errorMessage)
       }
 
-      setMom(typeof data?.mom === "string" ? data.mom : "")
+      setMinuteFlow(typeof data?.minuteFlow === "string" ? data.minuteFlow : typeof data?.mom === "string" ? data.mom : "")
       setRecordingState("done")
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -197,7 +199,7 @@ export default function RecordPage() {
     } finally {
       setAbortController(null)
     }
-  }, [setAbortController, setRecordingState, setMom, setError])
+  }, [setAbortController, setRecordingState, setMinuteFlow, setError])
 
   const handleLogin = useCallback(() => {
     if (isLoggingIn) return
@@ -238,7 +240,7 @@ export default function RecordPage() {
     setInterimText("")
 
     if (!isLoggedIn && creditsRemaining === 0) {
-      setError("Free credits exhausted. Please login to continue generating MoM.")
+      setError("Free credits exhausted. Please login to continue generating MinuteFlow.")
       setRecordingState("done")
       return
     }
@@ -246,10 +248,10 @@ export default function RecordPage() {
     // Capture transcript from store at this point + any lingering interim text
     const storeTranscript = useRecordingStore.getState().transcript
     const finalTranscriptToUse = (storeTranscript + " " + interimRef.current).trim()
-    generateMom(finalTranscriptToUse)
-  }, [stopAnalyser, isLoggedIn, creditsRemaining, setError, setRecordingState, generateMom])
+    generateMinuteFlow(finalTranscriptToUse)
+  }, [stopAnalyser, isLoggedIn, creditsRemaining, setError, setRecordingState, generateMinuteFlow])
 
-  const handleAbortMom = useCallback(() => {
+  const handleAbortMinuteFlow = useCallback(() => {
     abortController?.abort()
   }, [abortController])
 
@@ -310,7 +312,7 @@ export default function RecordPage() {
       </motion.div>
 
       <main className="flex-1 flex items-center justify-center pt-28 pb-10 px-6 md:px-12 relative z-10">
-        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
+        <div className={cn("w-full max-w-6xl grid gap-8 lg:gap-16 items-start", activeTab === "mic" ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
 
           {/* ─── LEFT: Controls ─────────────────────────────────────── */}
           <div className="flex flex-col items-center justify-center gap-8 lg:pt-12">
@@ -318,14 +320,56 @@ export default function RecordPage() {
             {/* Title */}
             <div className="text-center space-y-2">
               <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 dark:from-indigo-300 dark:via-white/90 dark:to-rose-300">
-                {state === "idle" ? "Start Recording" : state === "recording" ? "Recording…" : state === "paused" ? "Paused" : state === "processing" ? "Generating MoM…" : "Complete"}
+                {activeTab === "upload"
+                  ? "Upload Meeting Audio"
+                  : state === "idle" ? "Start Recording" : state === "recording" ? "Recording…" : state === "paused" ? "Paused" : state === "processing" ? "Generating MinuteFlow…" : "Complete"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {state === "idle" ? "Tap the mic to begin capturing your meeting" : formatTime(elapsed)}
+                {activeTab === "upload"
+                  ? "Upload a recorded meeting to auto-generate MinuteFlow"
+                  : state === "idle" ? "Tap the mic to begin capturing your meeting" : formatTime(elapsed)}
               </p>
             </div>
 
-            {/* Mic button */}
+            {/* Tab Switcher */}
+            {state === "idle" && (
+              <div className="flex items-center gap-1 p-1 rounded-2xl bg-muted/40 border border-border/40">
+                <button
+                  onClick={() => setActiveTab("mic")}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-all",
+                    activeTab === "mic"
+                      ? "bg-background text-foreground shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Mic className="w-4 h-4" />
+                  Record Mic
+                </button>
+                <button
+                  onClick={() => setActiveTab("upload")}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-all",
+                    activeTab === "upload"
+                      ? "bg-background text-foreground shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Upload className="w-4 h-4" />
+                  Upload Audio
+                </button>
+              </div>
+            )}
+
+            {/* Upload Tab Content */}
+            {activeTab === "upload" && state === "idle" && (
+              <AudioUploader
+                onComplete={(meetingId) => router.push(`/meetings/${meetingId}`)}
+              />
+            )}
+
+            {/* Mic button — only on mic tab */}
+            {activeTab === "mic" && (
             <div className="relative flex items-center justify-center">
               {isRecording && (
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0">
@@ -372,10 +416,11 @@ export default function RecordPage() {
                 )}
               </motion.button>
             </div>
+            )}
 
             {/* Recording controls */}
             <AnimatePresence mode="wait">
-              {isActive && (
+              {isActive && activeTab === "mic" && (
                 <motion.div
                   key="rec-controls"
                   initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
@@ -399,17 +444,17 @@ export default function RecordPage() {
                 </motion.div>
               )}
 
-              {/* Abort MoM generation */}
-              {isProcessing && (
+              {/* Abort MinuteFlow generation */}
+              {isProcessing && activeTab === "mic" && (
                 <motion.div
                   key="abort-controls"
                   initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
                   className="flex flex-col items-center gap-3"
                 >
                   <p className="text-xs text-muted-foreground/70 text-center max-w-xs">
-                    AI is structuring your transcript into a professional MoM...
+                    AI is structuring your transcript into a professional MinuteFlow...
                   </p>
-                  <button onClick={handleAbortMom}
+                  <button onClick={handleAbortMinuteFlow}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-rose-500/40 text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 text-sm font-medium transition-all">
                     <XCircle className="w-4 h-4" /> Stop & Discard
                   </button>
@@ -417,7 +462,7 @@ export default function RecordPage() {
               )}
 
               {/* Done controls */}
-              {isDone && (
+              {isDone && activeTab === "mic" && (
                 <motion.div
                   key="done-controls"
                   initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -428,23 +473,24 @@ export default function RecordPage() {
                     <RotateCcw className="w-4 h-4" /> New Recording
                   </button>
                   <button
-                    onClick={() => navigator.clipboard?.writeText(mom)}
-                    disabled={!mom}
+                    onClick={() => navigator.clipboard?.writeText(minuteFlow)}
+                    disabled={!minuteFlow}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold hover:opacity-90 transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed">
-                    <Copy className="w-4 h-4" /> Copy MoM
+                    <Copy className="w-4 h-4" /> Copy MinuteFlow
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {state === "idle" && (
+            {state === "idle" && activeTab === "mic" && (
               <p className="text-xs text-muted-foreground/50 text-center max-w-xs">
-                Speech is processed locally via the Web Speech API. MoM is generated by a premium AI model.
+                Speech is processed locally via the Web Speech API. MinuteFlow is generated by a premium AI model.
               </p>
             )}
           </div>
 
-          {/* ─── RIGHT: Live Transcript + MoM Output ────────────────── */}
+          {/* ─── RIGHT: Live Transcript + MinuteFlow Output ────────────────── */}
+          {activeTab === "mic" && (
           <div className="relative flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
@@ -536,10 +582,10 @@ export default function RecordPage() {
                 </div>
               )}
 
-              {/* MoM output (markdown-like rendering with whitespace) */}
-              {isDone && mom && (
+              {/* MinuteFlow output (markdown-like rendering with whitespace) */}
+              {isDone && minuteFlow && (
                 <div className="max-w-none text-foreground/90">
-                  <Streamdown mode="static">{mom}</Streamdown>
+                  <Streamdown mode="static">{minuteFlow}</Streamdown>
                 </div>
               )}
 
@@ -566,6 +612,7 @@ export default function RecordPage() {
               )}
             </HoverBorderGradient>
           </div>
+          )}
         </div>
       </main>
     </div>
